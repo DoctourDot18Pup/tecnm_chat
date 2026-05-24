@@ -6,23 +6,200 @@ Aplicación de mensajería institucional para el **Tecnológico Nacional de Méx
 
 ## Índice
 
-1. [Características](#características)
-2. [Stack tecnológico](#stack-tecnológico)
-3. [Estructura del proyecto](#estructura-del-proyecto)
-4. [Diseño](#diseño)
-5. [Flujo de autenticación](#flujo-de-autenticación)
-6. [Colecciones Firestore](#colecciones-firestore)
-7. [Reglas de seguridad](#reglas-de-seguridad)
-8. [Sistema de roles](#sistema-de-roles)
-9. [Instalación y configuración](#instalación-y-configuración)
-10. [Compilar APK](#compilar-apk)
-11. [Usuarios de prueba](#usuarios-de-prueba)
-12. [Demo: flujo ideal](#demo-flujo-ideal)
-13. [Mejoras futuras](#mejoras-futuras)
+1. [Cumplimiento de requerimientos de la práctica](#cumplimiento-de-requerimientos-de-la-práctica)
+2. [Características](#características)
+3. [Stack tecnológico](#stack-tecnológico)
+4. [Estructura del proyecto](#estructura-del-proyecto)
+5. [Diseño](#diseño)
+6. [Flujo de autenticación](#flujo-de-autenticación)
+7. [Colecciones Firestore](#colecciones-firestore)
+8. [Reglas de seguridad](#reglas-de-seguridad)
+9. [Sistema de roles](#sistema-de-roles)
+10. [Instalación y configuración](#instalación-y-configuración)
+11. [Compilar APK](#compilar-apk)
+12. [Usuarios de prueba](#usuarios-de-prueba)
+13. [Demo: flujo ideal](#demo-flujo-ideal)
 
 ---
 
-## Características
+## Cumplimiento de requerimientos de la práctica
+
+A continuación se describe cómo cada punto solicitado en la práctica fue cubierto dentro de la aplicación.
+
+---
+
+### 1. Interfaz para ver, escribir y enviar mensajes entre alumnos y profesores
+
+Se implementó un módulo completo de mensajería en tiempo real sobre **Cloud Firestore**. Cada conversación es un documento en la colección `conversations` con una subcolección `messages`. Los mensajes se actualizan en la pantalla al instante mediante `StreamProvider` de Riverpod.
+
+**Archivos clave:**
+- [lib/features/chat/screens/chat_screen.dart](lib/features/chat/screens/chat_screen.dart)
+- [lib/features/chat/controllers/chat_controller.dart](lib/features/chat/controllers/chat_controller.dart)
+
+**Extras implementados sobre el requisito base:**
+- Indicador de «Escribiendo…» en tiempo real mediante el mapa `typingUsers` en el documento de conversación.
+- Confirmación de lectura con doble paloma (✓✓) al abrir el mensaje.
+- Soporte de múltiples tipos de contenido: texto, imagen, video, emoji, PDF.
+
+---
+
+### 2. Pantalla de registro con número de teléfono y autenticación de dos pasos (Firebase)
+
+La autenticación utiliza **Firebase Phone Auth** que envía un SMS con un código OTP de 6 dígitos al número registrado, cumpliendo el requisito de autenticación de dos pasos: primero el número (algo que el usuario sabe) y luego el código recibido vía SMS (algo que el usuario posee).
+
+**Flujo:**
+1. `PhoneInputScreen` — el usuario ingresa su número con prefijo +52.
+2. Firebase envía el SMS y devuelve un `verificationId`.
+3. `OtpVerifyScreen` — el usuario ingresa el código de 6 dígitos.
+4. Firebase valida el código y crea/recupera la sesión de usuario.
+
+**Archivos clave:**
+- [lib/features/auth/screens/phone_input_screen.dart](lib/features/auth/screens/phone_input_screen.dart)
+- [lib/features/auth/screens/otp_verify_screen.dart](lib/features/auth/screens/otp_verify_screen.dart)
+- [lib/features/auth/controllers/auth_controller.dart](lib/features/auth/controllers/auth_controller.dart)
+
+---
+
+### 3. Pantalla de perfil con avatar, correo institucional y datos adicionales
+
+Al completar el registro por primera vez, el usuario pasa por `ProfileSetupScreen` donde configura su perfil. Los datos almacenados en Firestore (`users/{uid}`) son:
+
+| Campo | Descripción |
+|---|---|
+| `displayName` | Nombre completo del usuario |
+| `phone` | Número de teléfono registrado |
+| `role` | Rol institucional: `student` o `professor` |
+| `career` | Carrera (10 opciones del TecNM Celaya) |
+| `avatarUrl` | URL de la foto de perfil subida a Cloudinary |
+| `createdAt` | Fecha de registro |
+
+La foto de perfil se selecciona desde galería o cámara y se sube a Cloudinary antes de guardar el documento.
+
+**Archivos clave:**
+- [lib/features/profile/screens/profile_setup_screen.dart](lib/features/profile/screens/profile_setup_screen.dart)
+- [lib/features/profile/screens/profile_edit_screen.dart](lib/features/profile/screens/profile_edit_screen.dart)
+- [lib/features/profile/controllers/profile_controller.dart](lib/features/profile/controllers/profile_controller.dart)
+
+---
+
+### 4. Agregar contactos únicamente por número de teléfono
+
+Un usuario puede agregar contactos mediante `AddContactScreen`, ingresando el número de teléfono de otro usuario registrado en la app. El controlador realiza una consulta a Firestore buscando el documento en `users` cuyo campo `phone` coincida; si existe, lo agrega a la subcolección `contacts` del usuario actual.
+
+Solo se pueden agregar usuarios que ya estén registrados en la plataforma, garantizando que todos los contactos sean miembros institucionales.
+
+**Archivos clave:**
+- [lib/features/contacts/screens/add_contact_screen.dart](lib/features/contacts/screens/add_contact_screen.dart)
+- [lib/features/contacts/controllers/contacts_controller.dart](lib/features/contacts/controllers/contacts_controller.dart)
+
+---
+
+### 5. El profesor puede crear grupos y ocultar los números de los integrantes
+
+La creación de grupos está restringida exclusivamente a usuarios con `role == 'professor'`, validado tanto en la app como en las reglas de Firestore. Durante la creación, el docente dispone de un toggle **«Ocultar números de teléfono»** que, al activarse, establece `hidePhoneNumbers: true` en el documento de la conversación.
+
+Cuando este campo está activo, la pantalla de detalle del grupo (`GroupDetailScreen`) omite el número de teléfono de cada miembro en la lista, mostrando únicamente nombre, carrera y rol.
+
+**Archivos clave:**
+- [lib/features/groups/screens/create_group_screen.dart](lib/features/groups/screens/create_group_screen.dart)
+- [lib/features/groups/screens/group_detail_screen.dart](lib/features/groups/screens/group_detail_screen.dart)
+- [lib/features/groups/controllers/groups_controller.dart](lib/features/groups/controllers/groups_controller.dart)
+
+---
+
+### 6. Pantalla con lista de conversaciones más recientes
+
+`ConversationsScreen` es la pantalla principal de la app. Muestra todas las conversaciones del usuario ordenadas por `lastMessageAt` de forma descendente, incluyendo:
+
+- Avatar del contacto o del grupo.
+- Nombre del contacto o nombre del grupo.
+- Vista previa del último mensaje.
+- Marca de tiempo relativa.
+- Badge con el conteo de mensajes no leídos.
+
+Además cuenta con **cuatro tabs de filtro**: Todos, No leídos, Grupos y Tablón (con badge de publicaciones nuevas).
+
+**Archivos clave:**
+- [lib/features/conversations/screens/conversations_screen.dart](lib/features/conversations/screens/conversations_screen.dart)
+- [lib/features/conversations/controllers/conversations_controller.dart](lib/features/conversations/controllers/conversations_controller.dart)
+
+---
+
+### 7. Al seleccionar una conversación se muestra su detalle
+
+Al tocar cualquier conversación de la lista, `go_router` navega a `/chat/:id`, cargando `ChatScreen` con el historial completo de mensajes en orden cronológico. La pantalla incluye:
+
+- AppBar con nombre del contacto/grupo y estado de «Escribiendo…».
+- Historial de mensajes paginado por Firestore en tiempo real.
+- Campo de texto, selector de emoji y menú de adjuntos.
+- Para grupos: botón ⓘ que abre `GroupDetailScreen` (miembros, multimedia).
+- Para chats directos: botón de videollamada.
+
+**Archivos clave:**
+- [lib/features/chat/screens/chat_screen.dart](lib/features/chat/screens/chat_screen.dart)
+- [lib/core/router/app_router.dart](lib/core/router/app_router.dart)
+
+---
+
+### 8. Envío de fotos, videos, animaciones y emoticonos en conversaciones
+
+El chat soporta los siguientes tipos de contenido multimedia, cada uno con su propio widget de burbuja:
+
+| Tipo | Cómo se envía | Cómo se muestra |
+|---|---|---|
+| **Texto** | Campo de texto | Burbuja de texto |
+| **Emoji / animación** | Selector de emojis integrado (`emoji_picker_flutter`) | Emoji a tamaño 40 px sin burbuja |
+| **Imagen** | Galería o cámara (`image_picker`) → sube a Cloudinary | `CachedNetworkImage` dentro de burbuja |
+| **Video** | Galería (`image_picker`) → sube a Cloudinary | Reproductor inline con control play/pausa |
+| **PDF / archivo** | `file_picker` → sube a Cloudinary | Chip con ícono PDF y botón «Toca para abrir» |
+
+Los archivos multimedia se comprimen antes de subir (`flutter_image_compress`) y se sirven vía CDN de Cloudinary.
+
+**Archivos clave:**
+- [lib/features/chat/screens/chat_screen.dart](lib/features/chat/screens/chat_screen.dart)
+- [lib/features/chat/controllers/chat_controller.dart](lib/features/chat/controllers/chat_controller.dart)
+- [lib/data/repositories/cloudinary_service.dart](lib/data/repositories/cloudinary_service.dart)
+
+---
+
+### 9. Realizar videollamadas a contactos registrados
+
+Las videollamadas P2P se implementaron con **Agora RTC Engine 6.x**. El flujo completo es:
+
+1. El emisor toca el ícono de cámara en el AppBar del chat → `CallScreen` crea un documento en `calls/{id}` con `status: 'calling'` y un `channelName` único (UUID v4).
+2. El receptor es notificado por `incomingCallProvider` (StreamProvider que escucha llamadas entrantes en Firestore) y ve `IncomingCallScreen`.
+3. Al aceptar, el receptor ejecuta `joinCall()` y navega a `CallScreen` con `isReceiver: true` (para no re-iniciar la llamada).
+4. Ambos dispositivos solicitan permisos de CÁMARA y MICRÓFONO en runtime (`permission_handler`) antes de inicializar el motor Agora.
+5. Cuando cualquiera cuelga, Firestore actualiza `status: 'ended'` y ambos dispositivos cierran la pantalla mediante un `StreamSubscription`.
+
+**Archivos clave:**
+- [lib/features/calls/controllers/calls_controller.dart](lib/features/calls/controllers/calls_controller.dart)
+- [lib/features/calls/screens/call_screen.dart](lib/features/calls/screens/call_screen.dart)
+- [lib/features/calls/screens/incoming_call_screen.dart](lib/features/calls/screens/incoming_call_screen.dart)
+- [lib/main.dart](lib/main.dart) — `_IncomingCallListener` global
+
+---
+
+### 10. Funcionalidad adicional a consideración del estudiante — Tablón Académico *(5 pts)*
+
+Se implementó un **Tablón Académico** como canal de comunicación unidireccional del docente hacia los alumnos, cubriendo una necesidad real del entorno institucional del TecNM Celaya.
+
+**Funcionalidades:**
+
+- **Tipos de publicación:** Tarea, Aviso, Examen y Material, cada uno con color y etiqueta distintivos.
+- **Fecha límite opcional:** el docente puede fijar una fecha y hora de entrega que se muestra en la tarjeta de la publicación.
+- **Archivo adjunto:** soporte para PDF, Word, PowerPoint y Excel. El archivo se sube a Cloudinary y los alumnos pueden abrirlo directamente desde la app con su aplicación preferida.
+- **Control de lectura:** cada publicación registra qué usuarios la han visto (`readBy`) y muestra el contador «Leído por X/N». El badge del tab «Tablón» en la pantalla de conversaciones indica cuántas publicaciones nuevas hay.
+- **Filtros:** los alumnos pueden filtrar las publicaciones por tipo desde la barra de chips horizontal.
+- **Seguridad:** las reglas de Firestore impiden que un alumno cree o elimine publicaciones; solo puede marcar como leído (`readBy`).
+
+**Archivos clave:**
+- [lib/features/board/screens/academic_board_screen.dart](lib/features/board/screens/academic_board_screen.dart)
+- [lib/features/board/controllers/board_controller.dart](lib/features/board/controllers/board_controller.dart)
+- [lib/data/models/board_post_model.dart](lib/data/models/board_post_model.dart)
+- [firestore.rules](firestore.rules)
+
+---
 
 | Módulo | Funcionalidades implementadas |
 |---|---|
@@ -393,17 +570,6 @@ Cada número debe pasar por el flujo OTP al menos una vez para que Firebase Auth
 ### 6. Historias
 - Tocar el avatar propio en la barra superior → seleccionar imagen o video.
 - Los demás ven el anillo de color en el avatar; tocar reproduce la historia a pantalla completa.
-
----
-
-## Mejoras futuras
-
-- [ ] **Notificaciones push** — FCM para mensajes y llamadas con la app en segundo plano
-- [ ] **Token de Agora** — generación de tokens mediante Cloud Functions para producción
-- [ ] **Cloud Function** — actualizar `totalParticipants` en `board_posts` automáticamente
-- [ ] **Llamadas grupales** — extender Agora a canales con más de 2 participantes
-- [ ] **Firma y distribución** — keystore de release + Firebase App Distribution
-- [ ] **Reacciones a mensajes** — emojis de reacción en burbujas de chat
 
 ---
 

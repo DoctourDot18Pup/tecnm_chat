@@ -1,0 +1,29 @@
+{
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "tecnm-chat-celaya",
+          "appId": "1:779798219382:android:069117105a82984af4ed57",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "tecnm-chat-celaya",
+          "configurations": {
+            "android": "1:779798219382:android:069117105a82984af4ed57",
+            "ios": "1:779798219382:ios:b51ca976cd492856f4ed57",
+            "macos": "1:779798219382:ios:b51ca976cd492856f4ed57",
+            "web": "1:779798219382:web:3f3d0281dfd3858ef4ed57",
+            "windows": "1:779798219382:web:ce8e61ef6e9e77c0f4ed57"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "779798219382",
+    "project_id": "tecnm-chat-celaya",
+    "storage_bucket": "tecnm-chat-celaya.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:779798219382:android:069117105a82984af4ed57",
+        "android_client_info": {
+          "package_name": "com.tecnm.tecnm_chat"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBBWwgboI8YiMJ4fnVG6kjw-C6kcU5bAuA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

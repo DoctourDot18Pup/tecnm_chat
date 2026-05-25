@@ -22,6 +22,15 @@ Aplicación de mensajería institucional para el **Tecnológico Nacional de Méx
 
 ---
 
+## Practica realizada por:
+
+21031430 - Gómez Ramírez Luis Roberto
+22030785 - Ramirez Reyes Gabriel Josafat
+
+---
+
+---
+
 ## Cumplimiento de requerimientos de la práctica
 
 A continuación se describe cómo cada punto solicitado en la práctica fue cubierto dentro de la aplicación.
